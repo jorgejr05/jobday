@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JobDay — Araçatuba</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAF6;
+    --surface:#FFFFFF;
+    --ink:#17171B;
+    --muted:#6E6E78;
+    --line:#E7E6E0;
+    --presencial:#FF5A1F;
+    --presencial-soft:#FFEDE2;
+    --remoto:#0C9C93;
+    --remoto-soft:#DDF4F1;
+    --alert:#D93B3B;
+    --alert-soft:#FCE7E7;
+    --success:#1F9254;
+    --success-soft:#E4F5EB;
+    --radius:16px;
+    --shadow: 0 1px 2px rgba(23,23,27,0.04), 0 8px 24px -12px rgba(23,23,27,0.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  #app{
+    max-width:460px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    padding-bottom:78px;
+  }
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  ::selection{background:var(--presencial-soft);}
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    background:var(--bg);
+    padding:22px 20px 14px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid transparent;
+  }
+  .brand{display:flex;align-items:baseline;gap:6px;}
+  .brand-mark{
+    width:10px;height:10px;border-radius:3px;
+    background:linear-gradient(135deg,var(--presencial) 50%, var(--remoto) 50%);
+    display:inline-block;margin-right:2px;transform:translateY(-1px);
+  }
+  .brand-name{font-family:'Space Grotesk';font-weight:700;font-size:19px;letter-spacing:-0.02em;}
+  .brand-city{color:var(--muted);font-size:12px;font-weight:500;}
+  .icon-btn{
+    width:36px;height:36px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--surface);border:1px solid var(--line);
+    color:var(--muted);font-size:13px;font-weight:600;
+  }
+
+  /* ---------- segmented control (signature element) ---------- */
+  .segmented{
+    margin:4px 20px 18px;
+    display:flex;position:relative;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:4px;
+  }
+  .segmented .thumb{
+    position:absolute;top:4px;bottom:4px;left:4px;
+    width:calc(50% - 4px);
+    border-radius:999px;
+    background:var(--presencial);
+    transition:transform .28s cubic-bezier(.65,0,.35,1), background .28s ease;
+    z-index:0;
+  }
+  .segmented.state-remoto .thumb{transform:translateX(100%);background:var(--remoto);}
+  .segmented button{
+    flex:1;position:relative;z-index:1;
+    border:none;background:transparent;
+    padding:10px 0;border-radius:999px;
+    font-size:13.5px;font-weight:600;color:var(--muted);
+    transition:color .2s ease;
+  }
+  .segmented button.active{color:#fff;}
+
+  /* ---------- content ---------- */
+  .content{padding:0 20px;flex:1;}
+  .section-label{
+    font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin:22px 0 10px;
+  }
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 16px 14px;
+    margin-bottom:12px;
+    box-shadow:var(--shadow);
+  }
+  .vaga-card{border-left:3px solid var(--presencial);}
+  .vaga-card.remoto{border-left-color:var(--remoto);}
+  .vaga-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .vaga-title{font-family:'Space Grotesk';font-weight:700;font-size:16px;line-height:1.25;}
+  .vaga-valor{font-family:'IBM Plex Mono';font-weight:600;font-size:16px;white-space:nowrap;}
+  .vaga-valor.presencial{color:var(--presencial);}
+  .vaga-valor.remoto{color:var(--remoto);}
+  .vaga-desc{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.5;}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .badge{
+    font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;
+    background:#F1F1EE;color:var(--muted);
+  }
+  .badge.on-presencial{background:var(--presencial-soft);color:var(--presencial);}
+  .badge.on-remoto{background:var(--remoto-soft);color:var(--remoto);}
+  .badge.on-alert{background:var(--alert-soft);color:var(--alert);}
+  .badge.on-success{background:var(--success-soft);color:var(--success);}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    width:100%;border:none;border-radius:12px;padding:13px 16px;
+    font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .btn-primary{background:var(--ink);color:#fff;}
+  .btn-primary.presencial{background:var(--presencial);}
+  .btn-primary.remoto{background:var(--remoto);}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  .btn-sm{width:auto;padding:8px 14px;font-size:13px;border-radius:10px;}
+  .btn-row{display:flex;gap:8px;margin-top:10px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-danger{background:var(--alert-soft);color:var(--alert);}
+  .btn-success{background:var(--success-soft);color:var(--success);}
+  .link-btn{background:none;border:none;color:var(--muted);font-size:12.5px;font-weight:600;text-decoration:underline;text-underline-offset:2px;padding:0;}
+
+  /* ---------- forms ---------- */
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .field input[type=text],.field input[type=email],.field input[type=password],.field input[type=number],.field input[type=tel],.field select,.field textarea{
+    width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);
+    background:var(--surface);font-size:14.5px;color:var(--ink);
+  }
+  .field textarea{resize:vertical;min-height:70px;}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--ink);outline-offset:1px;}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;}
+  .hint.error{color:var(--alert);font-weight:600;}
+  .hint.ok{color:var(--success);font-weight:600;}
+  .toggle-row{display:flex;gap:8px;}
+  .toggle-chip{
+    flex:1;text-align:center;padding:10px 6px;border-radius:11px;border:1px solid var(--line);
+    font-size:13px;font-weight:600;color:var(--muted);background:var(--surface);
+  }
+  .toggle-chip.active.presencial{background:var(--presencial-soft);border-color:var(--presencial);color:var(--presencial);}
+  .toggle-chip.active.remoto{background:var(--remoto-soft);border-color:var(--remoto);color:var(--remoto);}
+
+  /* ---------- empty / loading ---------- */
+  .empty{
+    text-align:center;padding:50px 20px;color:var(--muted);
+  }
+  .empty .glyph{font-size:26px;margin-bottom:10px;}
+  .empty .t{font-family:'Space Grotesk';font-weight:700;color:var(--ink);font-size:15px;margin-bottom:4px;}
+  .loading{padding:50px 0;text-align:center;color:var(--muted);font-size:13px;}
+
+  /* ---------- bottom nav ---------- */
+  .bottomnav{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    max-width:460px;margin:0 auto;
+    background:var(--surface);border-top:1px solid var(--line);
+    display:flex;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  .nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+    background:none;border:none;color:var(--muted);font-size:11px;font-weight:600;padding:6px 0;border-radius:10px;
+  }
+  .nav-item .dot{width:6px;height:6px;border-radius:50%;background:transparent;margin-bottom:1px;}
+  .nav-item.active{color:var(--ink);}
+  .nav-item.active .dot{background:var(--ink);}
+
+  /* ---------- auth ---------- */
+  .auth-wrap{padding:60px 26px 40px;max-width:460px;margin:0 auto;}
+  .auth-hero{margin-bottom:34px;}
+  .auth-hero .tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:14px;}
+  .auth-hero .tag .sw{width:8px;height:8px;border-radius:2px;background:var(--presencial);}
+  .auth-hero .tag .sw2{width:8px;height:8px;border-radius:2px;background:var(--remoto);margin-left:-2px;}
+  .auth-hero h1{font-family:'Space Grotesk';font-size:30px;line-height:1.12;font-weight:700;letter-spacing:-0.01em;margin:0 0 10px;}
+  .auth-hero p{color:var(--muted);font-size:14.5px;line-height:1.55;margin:0;}
+  .auth-tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:22px;}
+  .auth-tab{padding:0 0 12px;border:none;background:none;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;}
+  .auth-tab.active{color:var(--ink);border-bottom-color:var(--ink);}
+  .checkbox-row{display:flex;align-items:flex-start;gap:10px;margin:16px 0 20px;}
+  .checkbox-row input{margin-top:3px;}
+  .checkbox-row label{font-size:12.5px;color:var(--muted);line-height:1.5;}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;
+    font-size:13px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.25);
+    opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
+    z-index:100;max-width:340px;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.err{background:var(--alert);}
+  .toast.ok{background:var(--success);}
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;z-index:200;background:rgba(23,23,27,.42);
+    display:flex;align-items:flex-end;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;
+  }
+  .modal-backdrop.show{opacity:1;pointer-events:auto;}
+  .modal-sheet{
+    width:100%;max-width:460px;background:var(--surface);
+    border-radius:20px 20px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+    transform:translateY(16px);transition:transform .2s ease;
+    max-height:82vh;overflow-y:auto;
+  }
+  .modal-backdrop.show .modal-sheet{transform:translateY(0);}
+  .modal-title{font-family:'Space Grotesk';font-weight:700;font-size:17px;margin-bottom:4px;}
+  .modal-sub{font-size:12.5px;color:var(--muted);margin-bottom:16px;}
+  .star-row{display:flex;gap:8px;margin-bottom:16px;}
+  .star{
+    flex:1;padding:12px 0;text-align:center;border-radius:11px;border:1px solid var(--line);
+    background:var(--surface);font-size:16px;font-weight:600;color:var(--muted);
+  }
+  .star.active{background:var(--presencial-soft);border-color:var(--presencial);color:var(--presencial);}
+  .candidato-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 0;border-bottom:1px solid var(--line);gap:10px;
+  }
+  .candidato-row:last-child{border-bottom:none;}
+  .candidato-name{font-weight:600;font-size:14px;}
+  .candidato-meta{font-size:12px;color:var(--muted);}
+
+  .divider{height:1px;background:var(--line);margin:18px 0;}
+  .row-between{display:flex;justify-content:space-between;align-items:center;}
+  .small-muted{font-size:12px;color:var(--muted);}
+  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){.segmented .thumb{transition:none;}.spinner{animation:none;}}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading">Carregando…</div></div>
+<div class="toast" id="toast"></div>
+<div class="modal-backdrop" id="modal-backdrop"><div class="modal-sheet" id="modal-sheet"></div></div>
+
+<script>
+/* =========================================================
+   CONFIG — conectado ao projeto Supabase real do usuário
+   ========================================================= */
+const SUPABASE_URL = "https://ofluubaslnykzxgxwaoe.supabase.co";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mbHV1YmFzbG55a3p4Z3h3YW9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MjA2MjksImV4cCI6MjA5ODE5NjYyOX0.nvgKwlVdn6cbyrcMW-cvG83czYDMeunVlspnKqRc5kI";
+
+let state = {
+  session: null,        // { access_token, refresh_token, user }
+  perfil: null,          // linha da tabela perfis
+  view: "mural",         // mural | publicar | perfil
+  filtroTipo: "presencial",
+  authTab: "login",
+  configs: {},
+  faltas: null,
+  loadingAction: false,
+};
+
+/* ---------------- helpers de rede ---------------- */
+async function authFetch(path, body){
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+    method: "POST",
+    headers: { "Content-Type":"application/json", "apikey": ANON_KEY },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error_description || data.msg || data.error || "Falha na autenticação");
+  return data;
+}
+
+async function rest(path, {method="GET", body, prefer} = {}){
+  const headers = { "apikey": ANON_KEY, "Content-Type":"application/json" };
+  if(state.session?.access_token) headers["Authorization"] = "Bearer " + state.session.access_token;
+  if(prefer) headers["Prefer"] = prefer;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method, headers, body: body?JSON.stringify(body):undefined });
+  let data = null;
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok){
+    const msg = (data && (data.message || data.error_description)) || `Erro ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+async function rpc(fn, args){
+  return rest(`rpc/${fn}`, { method:"POST", body: args });
+}
+
+/* ---------------- sessão persistente (window.storage) ---------------- */
+async function saveSession(session){
+  state.session = session;
+  try{
+    if(session){ await window.storage.set('jobday_session', JSON.stringify({access_token:session.access_token, refresh_token:session.refresh_token})); }
+    else { await window.storage.delete('jobday_session'); }
+  }catch(e){ /* storage indisponível, segue só em memória */ }
+}
+
+async function restoreSession(){
+  try{
+    const r = await window.storage.get('jobday_session');
+    if(!r) return false;
+    const saved = JSON.parse(r.value);
+    const data = await authFetch(`token?grant_type=refresh_token`, { refresh_token: saved.refresh_token });
+    await saveSession(data);
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ---------------- modal genérico ---------------- */
+function openModal(html){
+  const backdrop = document.getElementById("modal-backdrop");
+  document.getElementById("modal-sheet").innerHTML = html;
+  backdrop.classList.add("show");
+  backdrop.onclick = (e)=>{ if(e.target === backdrop) closeModal(); };
+}
+function closeModal(){
+  document.getElementById("modal-backdrop").classList.remove("show");
+}
+
+function confirmModal(title, sub, confirmLabel, danger=true){
+  return new Promise(resolve=>{
+    openModal(`
+      <div class="modal-title">${title}</div>
+      <div class="modal-sub">${sub}</div>
+      <div class="btn-row">
+        <button class="btn ${danger?'btn-danger':'btn-primary'}" id="modal-confirm">${confirmLabel}</button>
+        <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      </div>
+    `);
+    document.getElementById("modal-confirm").onclick = ()=>{ closeModal(); resolve(true); };
+    document.getElementById("modal-cancel").onclick = ()=>{ closeModal(); resolve(false); };
+  });
+}
+
+/* ---------------- toast ---------------- */
+let toastTimer;
+function toast(msg, kind=""){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast show " + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.className = "toast " + kind, 2800);
+}
+
+/* ---------------- formatação ---------------- */
+function brl(v){ return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+const PERIODO_LABEL = { manha:"Manhã", tarde:"Tarde", noite:"Noite", fim_de_semana:"Fim de semana" };
+const STATUS_LABEL = { pendente:"Pendente", aceito:"Aceito", rejeitado:"Recusado", concluido:"Concluído", no_show:"Falta", desistencia:"Desistência" };
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+async function boot(){
+  await restoreSession();
+  try{
+    const cfgs = await rest("configuracoes_plataforma?select=chave,valor");
+    cfgs.forEach(c => state.configs[c.chave] = Number(c.valor));
+  }catch(e){}
+
+  if(state.session){
+    try{
+      const perfis = await rest(`perfis?id=eq.${state.session.user.id}&select=*`);
+      if(perfis[0]) state.perfil = perfis[0];
+      else { await saveSession(null); }
+    }catch(e){ await saveSession(null); }
+  }
+  render();
+}
+boot();
+
+/* =========================================================
+   RENDER ROOT
+   ========================================================= */
+function render(){
+  const app = document.getElementById("app");
+  if(!state.session || !state.perfil){
+    app.innerHTML = renderAuth();
+    bindAuth();
+    return;
+  }
+  app.innerHTML = `
+    ${renderTopbar()}
+    <div class="content" id="content"></div>
+    ${renderBottomNav()}
+  `;
+  const content = document.getElementById("content");
+  if(state.view === "mural") content.innerHTML = "<div class='loading'>Carregando vagas…</div>";
+  if(state.view === "publicar") content.innerHTML = renderPublicar();
+  if(state.view === "perfil") content.innerHTML = "<div class='loading'>Carregando perfil…</div>";
+  bindNav();
+  if(state.view === "mural") loadMural();
+  if(state.view === "publicar") bindPublicar();
+  if(state.view === "perfil") loadPerfil();
+}
+
+function renderTopbar(){
+  return `
+    <div class="topbar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">JobDay</span>
+        <span class="brand-city">· Araçatuba</span>
+      </div>
+      <button class="icon-btn" id="btn-logout" title="Sair">⏻</button>
+    </div>
+  `;
+}
+
+function renderBottomNav(){
+  const items = [
+    {id:"mural", label:"Mural"},
+    {id:"publicar", label:"Publicar"},
+    {id:"perfil", label:"Perfil"},
+  ];
+  return `<div class="bottomnav">
+    ${items.map(i => `
+      <button class="nav-item ${state.view===i.id?'active':''}" data-view="${i.id}">
+        <span class="dot"></span>${i.label}
+      </button>`).join("")}
+  </div>`;
+}
+
+function bindNav(){
+  document.querySelectorAll(".nav-item").forEach(btn=>{
+    btn.onclick = ()=>{ state.view = btn.dataset.view; render(); };
+  });
+  document.getElementById("btn-logout").onclick = async ()=>{
+    await saveSession(null);
+    state.perfil = null;
+    render();
+  };
+}
+
+/* =========================================================
+   AUTENTICAÇÃO
+   ========================================================= */
+function renderAuth(){
+  const isLogin = state.authTab === "login";
+  return `
+  <div class="auth-wrap">
+    <div class="auth-hero">
+      <span class="tag"><span class="sw"></span><span class="sw2"></span>&nbsp;Presencial + Remoto</span>
+      <h1>Bicos de hoje,<br/>renda de agora.</h1>
+      <p>O mural de trabalho da sua cidade. Sem taxa pra quem presta serviço, sem enrolação pra quem contrata.</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab ${isLogin?'active':''}" data-tab="login">Entrar</button>
+      <button class="auth-tab ${!isLogin?'active':''}" data-tab="cadastro">Criar conta</button>
+    </div>
+    <div id="auth-form"></div>
+  </div>`;
+}
+
+function renderLoginForm(){
+  return `
+    <div class="field"><label>E-mail</label><input type="email" id="f-email" placeholder="voce@email.com"/></div>
+    <div class="field"><label>Senha</label><input type="password" id="f-senha" placeholder="••••••••"/></div>
+    <button class="btn btn-primary" id="btn-entrar">Entrar</button>
+    <p class="hint" id="auth-msg"></p>
+  `;
+}
+
+function renderCadastroForm(){
+  return `
+    <div class="field"><label>Nome completo</label><input type="text" id="f-nome" placeholder="Seu nome"/></div>
+    <div class="field">
+      <label>Como você vai usar o app?</label>
+      <select id="f-tipo">
+        <option value="prestador">Quero encontrar bicos</option>
+        <option value="contratante">Quero contratar</option>
+        <option value="ambos">Os dois</option>
+      </select>
+    </div>
+    <div class="field"><label>Bairro</label><input type="text" id="f-bairro" placeholder="Ex: Vila Mendonça"/></div>
+    <div class="field"><label>E-mail</label><input type="email" id="f-email" placeholder="voce@email.com"/></div>
+    <div class="field"><label>Senha</label><input type="password" id="f-senha" placeholder="mínimo 6 caracteres"/></div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="f-lgpd"/>
+      <label for="f-lgpd">Autorizo que meus dados profissionais (nome, bairro, avaliações) fiquem visíveis para fins de contratação, conforme a política de privacidade.</label>
+    </div>
+    <button class="btn btn-primary" id="btn-cadastrar">Criar conta</button>
+    <p class="hint" id="auth-msg"></p>
+  `;
+}
+
+function bindAuth(){
+  const box = document.getElementById("auth-form");
+  box.innerHTML = state.authTab==="login" ? renderLoginForm() : renderCadastroForm();
+
+  document.querySelectorAll(".auth-tab").forEach(t=>{
+    t.onclick = ()=>{ state.authTab = t.dataset.tab; render(); };
+  });
+
+  if(state.authTab === "login"){
+    document.getElementById("btn-entrar").onclick = async ()=>{
+      const email = document.getElementById("f-email").value.trim();
+      const senha = document.getElementById("f-senha").value;
+      const msg = document.getElementById("auth-msg");
+      msg.className="hint"; msg.textContent="";
+      if(!email || !senha){ msg.textContent="Preencha e-mail e senha."; msg.className="hint error"; return; }
+      try{
+        const data = await authFetch("token?grant_type=password", { email, password: senha });
+        await saveSession(data);
+        const perfis = await rest(`perfis?id=eq.${data.user.id}&select=*`);
+        if(!perfis[0]) throw new Error("Perfil não encontrado para esta conta.");
+        state.perfil = perfis[0];
+        toast("Bem-vindo de volta!", "ok");
+        render();
+      }catch(e){ msg.textContent = traduzErro(e.message); msg.className="hint error"; }
+    };
+  } else {
+    document.getElementById("btn-cadastrar").onclick = async ()=>{
+      const nome = document.getElementById("f-nome").value.trim();
+      const tipo = document.getElementById("f-tipo").value;
+      const bairro = document.getElementById("f-bairro").value.trim();
+      const email = document.getElementById("f-email").value.trim();
+      const senha = document.getElementById("f-senha").value;
+      const lgpd = document.getElementById("f-lgpd").checked;
+      const msg = document.getElementById("auth-msg");
+      msg.className="hint"; msg.textContent="";
+
+      if(!nome || !bairro || !email || senha.length<6){ msg.textContent="Preencha todos os campos (senha com 6+ caracteres)."; msg.className="hint error"; return; }
+      if(!lgpd){ msg.textContent="É necessário aceitar o termo para continuar."; msg.className="hint error"; return; }
+
+      try{
+        const data = await authFetch("signup", { email, password: senha });
+        if(!data.access_token){
+          msg.textContent = "Conta criada! Verifique seu e-mail para confirmar antes de entrar.";
+          msg.className = "hint ok";
+          return;
+        }
+        await saveSession(data);
+        await rest("perfis", { method:"POST", prefer:"return=representation", body:{
+          id: data.user.id, nome_completo: nome, tipo_usuario: tipo, bairro,
+          aceitou_termo_lgpd: true, aceitou_termo_em: new Date().toISOString()
+        }});
+        await rest("perfis_dados_sensiveis", { method:"POST", body:{ perfil_id: data.user.id, email }});
+        const perfis = await rest(`perfis?id=eq.${data.user.id}&select=*`);
+        state.perfil = perfis[0];
+        toast("Conta criada! Bem-vindo(a).", "ok");
+        render();
+      }catch(e){ msg.textContent = traduzErro(e.message); msg.className="hint error"; }
+    };
+  }
+}
+
+function traduzErro(m){
+  if(!m) return "Algo deu errado. Tente novamente.";
+  if(m.includes("already registered") || m.includes("already exists")) return "Este e-mail já está cadastrado.";
+  if(m.includes("Invalid login")) return "E-mail ou senha incorretos.";
+  return m;
+}
+
+/* =========================================================
+   MURAL DE VAGAS
+   ========================================================= */
+function segmentedHTML(){
+  return `
+    <div class="segmented ${state.filtroTipo==='remoto'?'state-remoto':''}" id="seg">
+      <div class="thumb"></div>
+      <button class="${state.filtroTipo==='presencial'?'active':''}" data-t="presencial">Presencial</button>
+      <button class="${state.filtroTipo==='remoto'?'active':''}" data-t="remoto">Remoto</button>
+    </div>
+  `;
+}
+
+async function loadMural(){
+  const content = document.getElementById("content");
+  content.innerHTML = segmentedHTML() + `<div id="lista" class="loading">Buscando vagas…</div>`;
+  document.querySelectorAll("#seg button").forEach(b=>{
+    b.onclick = ()=>{ state.filtroTipo = b.dataset.t; loadMural(); };
+  });
+
+  try{
+    const [vagas, minhasCand, minhasFaltas] = await Promise.all([
+      rest(`vagas?status=eq.aberta&tipo=eq.${state.filtroTipo}&order=criado_em.desc&select=*`),
+      rest(`candidaturas?trabalhador_id=eq.${state.perfil.id}&select=vaga_id,status`),
+      rest(`faltas_trabalhador?perfil_id=eq.${state.perfil.id}&select=*`),
+    ]);
+    state.faltas = minhasFaltas[0] || null;
+    const candMap = {};
+    minhasCand.forEach(c => candMap[c.vaga_id] = c.status);
+    renderLista(vagas, candMap);
+  }catch(e){
+    document.getElementById("lista").innerHTML = `<div class="empty"><div class="glyph">⚠️</div><div class="t">Não deu pra carregar o mural</div><div class="small-muted">${e.message}</div></div>`;
+  }
+}
+
+function renderLista(vagas, candMap){
+  const lista = document.getElementById("lista");
+  if(vagas.length === 0){
+    lista.innerHTML = `<div class="empty"><div class="glyph">🗒️</div><div class="t">Nenhuma vaga ${state.filtroTipo} agora</div><div class="small-muted">Volte mais tarde ou publique a sua.</div></div>`;
+    return;
+  }
+  const bloqueado = state.faltas?.bloqueado_ate && new Date(state.faltas.bloqueado_ate) > new Date();
+  lista.innerHTML = `
+    ${bloqueado ? `<div class="badge on-alert" style="display:inline-block;margin-bottom:12px;">Candidaturas bloqueadas até ${new Date(state.faltas.bloqueado_ate).toLocaleDateString('pt-BR')} (3 faltas seguidas)</div>` : ""}
+    ${vagas.map(v => vagaCardHTML(v, candMap[v.id])).join("")}
+  `;
+  vagas.forEach(v=>{
+    const btn = document.getElementById(`cand-${v.id}`);
+    if(btn) btn.onclick = ()=> candidatar(v.id);
+  });
+}
+
+function vagaCardHTML(v, meuStatus){
+  const isRemoto = v.tipo === "remoto";
+  const souDono = v.contratante_id === state.perfil.id;
+  const bloqueado = state.faltas?.bloqueado_ate && new Date(state.faltas.bloqueado_ate) > new Date();
+  let acao = "";
+  if(souDono){
+    acao = `<span class="small-muted">Vaga publicada por você</span>`;
+  } else if(state.perfil.tipo_usuario === "contratante"){
+    acao = `<span class="small-muted">Conta de contratante — não pode se candidatar</span>`;
+  } else if(meuStatus){
+    acao = `<span class="badge ${meuStatus==='aceito'?'on-success':meuStatus==='rejeitado'?'on-alert':''}">Sua candidatura: ${STATUS_LABEL[meuStatus]}</span>`;
+  } else {
+    acao = `<button class="btn btn-sm btn-primary ${isRemoto?'remoto':'presencial'}" id="cand-${v.id}" ${bloqueado?'disabled':''}>Candidatar-se</button>`;
+  }
+  return `
+    <div class="card vaga-card ${isRemoto?'remoto':''}">
+      <div class="vaga-top">
+        <div class="vaga-title">${escapeHtml(v.titulo)}</div>
+        <div class="vaga-valor ${isRemoto?'remoto':'presencial'} mono">${brl(v.valor)}</div>
+      </div>
+      ${v.descricao ? `<div class="vaga-desc">${escapeHtml(v.descricao)}</div>` : ""}
+      <div class="badges">
+        <span class="badge ${isRemoto?'on-remoto':'on-presencial'}">${isRemoto?'Remoto':'Presencial'}</span>
+        ${v.formato==='diaria_completa' ? `<span class="badge">Diária completa</span>` : `<span class="badge">Serviço rápido</span>`}
+        ${v.bairro ? `<span class="badge">📍 ${escapeHtml(v.bairro)}</span>` : ""}
+        ${v.periodo ? `<span class="badge">${PERIODO_LABEL[v.periodo]}</span>` : ""}
+      </div>
+      <div style="margin-top:12px;">${acao}</div>
+    </div>
+  `;
+}
+
+async function candidatar(vagaId){
+  try{
+    await rest("candidaturas", { method:"POST", body:{ vaga_id: vagaId, trabalhador_id: state.perfil.id } });
+    toast("Candidatura enviada!", "ok");
+    loadMural();
+  }catch(e){ toast(traduzErroBanco(e.message), "err"); }
+}
+
+function traduzErroBanco(m){
+  if(m.includes("bloqueado")) return "Você está temporariamente bloqueado por faltas (regra dos 3 erros).";
+  if(m.includes("piso mínimo")) return m;
+  if(m.includes("duplicate key")) return "Você já se candidatou a esta vaga.";
+  return m;
+}
+
+function escapeHtml(s){
+  const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML;
+}
+
+/* =========================================================
+   PUBLICAR VAGA
+   ========================================================= */
+function renderPublicar(){
+  if(state.perfil.tipo_usuario === "prestador"){
+    return `<div class="empty"><div class="glyph">🔒</div><div class="t">Sua conta é de prestador</div><div class="small-muted">Troque para "ambos" no seu perfil se também quiser publicar vagas.</div></div>`;
+  }
+  return `
+    <div class="section-label">Nova vaga</div>
+    <div class="field"><label>Título</label><input type="text" id="p-titulo" placeholder="Ex: Garçom para evento de sábado"/></div>
+    <div class="field"><label>Descrição</label><textarea id="p-desc" placeholder="Detalhes do que precisa ser feito"></textarea></div>
+
+    <div class="field">
+      <label>Tipo de vaga</label>
+      <div class="toggle-row" id="p-tipo-row">
+        <button type="button" class="toggle-chip active presencial" data-v="presencial">📍 Presencial</button>
+        <button type="button" class="toggle-chip remoto" data-v="remoto">💻 Remoto</button>
+      </div>
+    </div>
+
+    <div class="field" id="p-formato-field">
+      <label>Formato</label>
+      <div class="toggle-row" id="p-formato-row">
+        <button type="button" class="toggle-chip active presencial" data-v="servico_rapido">Serviço rápido</button>
+        <button type="button" class="toggle-chip presencial" data-v="diaria_completa">Diária completa</button>
+      </div>
+    </div>
+
+    <div id="p-endereco-fields">
+      <div class="field"><label>Bairro</label><input type="text" id="p-bairro" placeholder="Ex: Jardim Ipê"/></div>
+      <div class="field"><label>Endereço</label><input type="text" id="p-endereco" placeholder="Rua, número"/></div>
+    </div>
+
+    <div class="field">
+      <label>Período</label>
+      <select id="p-periodo">
+        <option value="manha">Manhã</option>
+        <option value="tarde">Tarde</option>
+        <option value="noite">Noite</option>
+        <option value="fim_de_semana">Fim de semana</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Valor oferecido (R$)</label>
+      <input type="number" id="p-valor" step="0.01" placeholder="0,00"/>
+      <p class="hint" id="p-piso-hint"></p>
+    </div>
+
+    <button class="btn btn-primary presencial" id="p-btn-publicar">Publicar vaga</button>
+    <p class="hint" id="p-msg"></p>
+  `;
+}
+
+let publicarState = { tipo:"presencial", formato:"servico_rapido" };
+
+function bindPublicar(){
+  if(state.perfil.tipo_usuario === "prestador") return;
+  publicarState = { tipo:"presencial", formato:"servico_rapido" };
+  updatePisoHint();
+
+  document.querySelectorAll("#p-tipo-row .toggle-chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      publicarState.tipo = chip.dataset.v;
+      document.querySelectorAll("#p-tipo-row .toggle-chip").forEach(c=>{
+        c.classList.toggle("active", c===chip);
+      });
+      document.getElementById("p-formato-field").style.display = publicarState.tipo==="presencial" ? "block":"none";
+      document.getElementById("p-endereco-fields").style.display = publicarState.tipo==="presencial" ? "block":"none";
+      if(publicarState.tipo === "remoto") publicarState.formato = "servico_rapido";
+      const btn = document.getElementById("p-btn-publicar");
+      btn.className = "btn btn-primary " + publicarState.tipo;
+      updatePisoHint();
+    };
+  });
+
+  document.querySelectorAll("#p-formato-row .toggle-chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      publicarState.formato = chip.dataset.v;
+      document.querySelectorAll("#p-formato-row .toggle-chip").forEach(c=>c.classList.toggle("active", c===chip));
+      updatePisoHint();
+    };
+  });
+
+  document.getElementById("p-valor").oninput = updatePisoHint;
+
+  document.getElementById("p-btn-publicar").onclick = async ()=>{
+    const titulo = document.getElementById("p-titulo").value.trim();
+    const descricao = document.getElementById("p-desc").value.trim();
+    const bairro = document.getElementById("p-bairro")?.value.trim();
+    const endereco = document.getElementById("p-endereco")?.value.trim();
+    const periodo = document.getElementById("p-periodo").value;
+    const valor = parseFloat(document.getElementById("p-valor").value);
+    const msg = document.getElementById("p-msg");
+    msg.className="hint"; msg.textContent="";
+
+    if(!titulo || !valor){ msg.textContent="Preencha ao menos título e valor."; msg.className="hint error"; return; }
+    if(publicarState.tipo === "presencial" && (!bairro || !endereco)){
+      msg.textContent="Vagas presenciais exigem bairro e endereço."; msg.className="hint error"; return;
+    }
+
+    try{
+      await rest("vagas", { method:"POST", body:{
+        contratante_id: state.perfil.id, titulo, descricao,
+        tipo: publicarState.tipo, formato: publicarState.formato,
+        bairro: publicarState.tipo==="presencial" ? bairro : null,
+        endereco: publicarState.tipo==="presencial" ? endereco : null,
+        periodo, valor
+      }});
+      toast("Vaga publicada no mural!", "ok");
+      state.view = "mural"; state.filtroTipo = publicarState.tipo;
+      render();
+    }catch(e){ msg.textContent = traduzErroBanco(e.message); msg.className="hint error"; }
+  };
+}
+
+function updatePisoHint(){
+  const piso = (publicarState.tipo==="presencial" && publicarState.formato==="diaria_completa")
+    ? state.configs.piso_diaria_presencial
+    : state.configs.piso_servico_rapido_remoto;
+  const hint = document.getElementById("p-piso-hint");
+  if(!hint) return;
+  const valorAtual = parseFloat(document.getElementById("p-valor").value);
+  if(piso == null){ hint.textContent=""; return; }
+  if(valorAtual && valorAtual < piso){
+    hint.textContent = `Abaixo do piso mínimo de ${brl(piso)} para este tipo de vaga.`;
+    hint.className = "hint error";
+  } else {
+    hint.textContent = `Piso mínimo para este tipo de vaga: ${brl(piso)}.`;
+    hint.className = "hint";
+  }
+}
+
+/* =========================================================
+   PERFIL
+   ========================================================= */
+async function loadPerfil(){
+  const content = document.getElementById("content");
+  try{
+    const [disp, faltas, sensiveis] = await Promise.all([
+      rest(`disponibilidade_trabalhador?perfil_id=eq.${state.perfil.id}&select=periodo`),
+      rest(`faltas_trabalhador?perfil_id=eq.${state.perfil.id}&select=*`),
+      rest(`perfis_dados_sensiveis?perfil_id=eq.${state.perfil.id}&select=telefone`),
+    ]);
+    let candidaturas = [], minhasVagas = [];
+    if(state.perfil.tipo_usuario !== "contratante"){
+      candidaturas = await rest(`candidaturas?trabalhador_id=eq.${state.perfil.id}&order=candidatou_em.desc&select=*,vagas(titulo,valor,tipo)`);
+    }
+    if(state.perfil.tipo_usuario !== "prestador"){
+      minhasVagas = await rest(`vagas?contratante_id=eq.${state.perfil.id}&order=criado_em.desc&select=*`);
+    }
+    content.innerHTML = renderPerfilContent(disp.map(d=>d.periodo), faltas[0], sensiveis[0]?.telefone, candidaturas, minhasVagas);
+    bindPerfil(minhasVagas);
+  }catch(e){
+    content.innerHTML = `<div class="empty"><div class="glyph">⚠️</div><div class="t">Erro ao carregar perfil</div><div class="small-muted">${e.message}</div></div>`;
+  }
+}
+
+function renderPerfilContent(periodosAtivos, faltas, telefone, candidaturas, minhasVagas){
+  const bloqueado = faltas?.bloqueado_ate && new Date(faltas.bloqueado_ate) > new Date();
+  const PERIODOS = ["manha","tarde","noite","fim_de_semana"];
+
+  return `
+    <div class="card">
+      <div class="row-between">
+        <div>
+          <div class="vaga-title">${escapeHtml(state.perfil.nome_completo)}</div>
+          <div class="small-muted">${escapeHtml(state.perfil.bairro||"")} · ${state.perfil.tipo_usuario}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="mono" style="font-weight:600;">★ ${Number(state.perfil.nota_media).toFixed(1)}</div>
+          <div class="small-muted">${state.perfil.total_avaliacoes} avaliações</div>
+        </div>
+      </div>
+      ${bloqueado ? `<div class="badge on-alert" style="margin-top:12px;display:inline-block;">Bloqueado até ${new Date(faltas.bloqueado_ate).toLocaleDateString('pt-BR')}</div>` : ""}
+    </div>
+
+    <div class="section-label">Telefone de contato</div>
+    <div class="card">
+      <div class="field" style="margin-bottom:8px;">
+        <input type="tel" id="perfil-telefone" placeholder="(18) 90000-0000" value="${telefone||""}"/>
+      </div>
+      <p class="small-muted" style="margin:0 0 10px;">Só é revelado à outra parte depois que uma candidatura é aceita.</p>
+      <button class="btn-sm btn-ghost btn" id="btn-salvar-telefone">Salvar telefone</button>
+    </div>
+
+    ${state.perfil.tipo_usuario !== "contratante" ? `
+      <div class="section-label">Disponibilidade</div>
+      <div class="card">
+        <div class="toggle-row" style="flex-wrap:wrap;">
+          ${PERIODOS.map(p=>`
+            <button type="button" class="toggle-chip ${periodosAtivos.includes(p)?'active presencial':''}" data-periodo="${p}" style="flex:1 1 45%;">
+              ${PERIODO_LABEL[p]}
+            </button>`).join("")}
+        </div>
+      </div>
+    ` : ""}
+
+    ${state.perfil.tipo_usuario !== "contratante" ? `
+      <div class="section-label">Minhas candidaturas</div>
+      ${candidaturas.length===0 ? `<p class="small-muted">Você ainda não se candidatou a nenhuma vaga.</p>` :
+        candidaturas.map(c => candidaturaCardHTML(c)).join("")}
+    ` : ""}
+
+    ${state.perfil.tipo_usuario !== "prestador" ? `
+      <div class="section-label">Minhas vagas publicadas</div>
+      ${minhasVagas.length===0 ? `<p class="small-muted">Você ainda não publicou nenhuma vaga.</p>` :
+        minhasVagas.map(v => `<div class="card" id="minha-vaga-${v.id}"><div class="row-between"><div class="vaga-title">${escapeHtml(v.titulo)}</div><span class="badge">${v.status}</span></div></div>`).join("")}
+    ` : ""}
+  `;
+}
+
+function candidaturaCardHTML(c){
+  const kindClass = c.vagas.tipo === "remoto" ? "on-remoto":"on-presencial";
+  let acoesTrabalhador = "";
+  if(c.status === "aceito"){
+    acoesTrabalhador = `
+      <div class="btn-row">
+        <button class="btn-sm btn btn-success" data-acao="concluido" data-id="${c.id}">Marcar concluído</button>
+        <button class="btn-sm btn btn-danger" data-acao="desistencia" data-id="${c.id}">Desistir</button>
+      </div>`;
+  }
+  let avaliacao = "";
+  if(c.status === "concluido"){
+    avaliacao = `<button class="link-btn" data-avaliar="${c.id}" data-alvo="${''}" style="margin-top:8px;">Avaliar esta experiência</button>`;
+  }
+  return `
+    <div class="card">
+      <div class="row-between">
+        <div class="vaga-title">${escapeHtml(c.vagas.titulo)}</div>
+        <div class="mono" style="font-weight:600;">${brl(c.vagas.valor)}</div>
+      </div>
+      <div class="badges">
+        <span class="badge ${kindClass}">${c.vagas.tipo==='remoto'?'Remoto':'Presencial'}</span>
+        <span class="badge ${c.status==='aceito'?'on-success':c.status==='rejeitado'||c.status==='no_show'?'on-alert':''}">${STATUS_LABEL[c.status]}</span>
+      </div>
+      ${acoesTrabalhador}
+      ${avaliacao}
+    </div>
+  `;
+}
+
+function bindPerfil(minhasVagas){
+  document.querySelectorAll("[data-periodo]").forEach(chip=>{
+    chip.onclick = async ()=>{
+      const periodo = chip.dataset.periodo;
+      const ativo = chip.classList.contains("active");
+      try{
+        if(ativo){
+          await rest(`disponibilidade_trabalhador?perfil_id=eq.${state.perfil.id}&periodo=eq.${periodo}`, { method:"DELETE" });
+          chip.classList.remove("active","presencial");
+        } else {
+          await rest("disponibilidade_trabalhador", { method:"POST", body:{ perfil_id: state.perfil.id, periodo } });
+          chip.classList.add("active","presencial");
+        }
+      }catch(e){ toast("Não foi possível atualizar.", "err"); }
+    };
+  });
+
+  const btnTel = document.getElementById("btn-salvar-telefone");
+  if(btnTel){
+    btnTel.onclick = async ()=>{
+      const telefone = document.getElementById("perfil-telefone").value.trim();
+      try{
+        await rest(`perfis_dados_sensiveis?perfil_id=eq.${state.perfil.id}`, { method:"PATCH", body:{ telefone } });
+        toast("Telefone salvo.", "ok");
+      }catch(e){ toast("Erro ao salvar telefone.", "err"); }
+    };
+  }
+
+  document.querySelectorAll("[data-acao]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.id;
+      const acao = btn.dataset.acao;
+      if(acao === "desistencia"){
+        const ok = await confirmModal("Desistir do bico?", "Desistências contam para a regra dos 3 erros e podem gerar bloqueio de 30 dias.", "Sim, desistir");
+        if(!ok) return;
+      }
+      try{
+        await rest(`candidaturas?id=eq.${id}`, { method:"PATCH", body:{ status: acao } });
+        toast(acao==="concluido" ? "Serviço marcado como concluído!" : "Candidatura cancelada.", acao==="concluido"?"ok":"err");
+        loadPerfil();
+      }catch(e){ toast(e.message, "err"); }
+    };
+  });
+
+  document.querySelectorAll("[data-avaliar]").forEach(btn=>{
+    btn.onclick = ()=> abrirAvaliacao(btn.dataset.avaliar);
+  });
+
+  minhasVagas.forEach(v=>{
+    const card = document.getElementById(`minha-vaga-${v.id}`);
+    if(card) card.onclick = ()=> abrirCandidatosDaVaga(v);
+  });
+}
+
+/* ---------------- avaliação (cega) ---------------- */
+function abrirAvaliacao(candidaturaId){
+  let notaEscolhida = 0;
+  openModal(`
+    <div class="modal-title">Avaliar experiência</div>
+    <div class="modal-sub">Sua nota e comentário ficam ocultos para a outra pessoa até que ela também avalie, ou após 48h.</div>
+    <div class="star-row" id="star-row">
+      ${[1,2,3,4,5].map(n=>`<button type="button" class="star" data-n="${n}">${n}★</button>`).join("")}
+    </div>
+    <div class="field"><label>Comentário (opcional)</label><textarea id="modal-comentario" placeholder="Como foi a experiência?"></textarea></div>
+    <button class="btn btn-primary" id="modal-enviar-avaliacao">Enviar avaliação</button>
+  `);
+  document.querySelectorAll("#star-row .star").forEach(s=>{
+    s.onclick = ()=>{
+      notaEscolhida = parseInt(s.dataset.n);
+      document.querySelectorAll("#star-row .star").forEach(x=> x.classList.toggle("active", parseInt(x.dataset.n) <= notaEscolhida));
+    };
+  });
+  document.getElementById("modal-enviar-avaliacao").onclick = async ()=>{
+    if(!notaEscolhida){ toast("Escolha uma nota de 1 a 5.", "err"); return; }
+    const comentario = document.getElementById("modal-comentario").value.trim();
+    try{
+      const cand = await rest(`candidaturas?id=eq.${candidaturaId}&select=*,vagas(contratante_id)`);
+      const c = cand[0];
+      const avaliadoId = c.trabalhador_id === state.perfil.id ? c.vagas.contratante_id : c.trabalhador_id;
+      await rest("avaliacoes", { method:"POST", body:{
+        candidatura_id: candidaturaId, avaliador_id: state.perfil.id, avaliado_id: avaliadoId,
+        nota: notaEscolhida, comentario
+      }});
+      closeModal();
+      toast("Avaliação enviada!", "ok");
+    }catch(e){ toast(traduzErroBanco(e.message), "err"); }
+  };
+}
+
+/* ---------------- candidatos de uma vaga (visão do contratante) ---------------- */
+async function abrirCandidatosDaVaga(vaga){
+  try{
+    const cands = await rest(`candidaturas?vaga_id=eq.${vaga.id}&select=*,perfis!candidaturas_trabalhador_id_fkey(nome_completo,nota_media)`);
+    if(cands.length===0){ toast("Nenhuma candidatura ainda para esta vaga.", ""); return; }
+    renderCandidatosModal(vaga, cands);
+  }catch(e){ toast(e.message, "err"); }
+}
+
+function renderCandidatosModal(vaga, cands){
+  openModal(`
+    <div class="modal-title">Candidatos</div>
+    <div class="modal-sub">${escapeHtml(vaga.titulo)}</div>
+    <div id="cand-list">
+      ${cands.map(c => `
+        <div class="candidato-row">
+          <div>
+            <div class="candidato-name">${escapeHtml(c.perfis.nome_completo)}</div>
+            <div class="candidato-meta">★ ${Number(c.perfis.nota_media).toFixed(1)} · ${STATUS_LABEL[c.status]}</div>
+          </div>
+          ${c.status === "pendente" ? `<button class="btn-sm btn btn-success" data-accept="${c.id}">Aceitar</button>` : ""}
+        </div>
+      `).join("")}
+    </div>
+  `);
+  document.querySelectorAll("[data-accept]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      try{
+        await rest(`candidaturas?id=eq.${btn.dataset.accept}`, { method:"PATCH", body:{ status:"aceito" } });
+        closeModal();
+        toast("Candidato aceito! Chat liberado para ambos.", "ok");
+      }catch(e){ toast(e.message, "err"); }
+    };
+  });
+}
+</script>
+</body>
+</html>
