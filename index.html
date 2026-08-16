@@ -295,7 +295,7 @@ async function authFetch(path, body){
 
 async function rest(path, {method="GET", body, prefer} = {}){
   const headers = { "apikey": ANON_KEY, "Content-Type":"application/json" };
-  if(state.session?.access_token) headers["Authorization"] = "Bearer " + state.session.access_token;
+  headers["Authorization"] = "Bearer " + (state.session?.access_token || ANON_KEY);
   if(prefer) headers["Prefer"] = prefer;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method, headers, body: body?JSON.stringify(body):undefined });
   let data = null;
@@ -389,6 +389,7 @@ async function boot(){
       else { await saveSession(null); }
     }catch(e){ await saveSession(null); }
   }
+  state.view = "mural";
   render();
 }
 boot();
@@ -398,11 +399,6 @@ boot();
    ========================================================= */
 function render(){
   const app = document.getElementById("app");
-  if(!state.session || !state.perfil){
-    app.innerHTML = renderAuth();
-    bindAuth();
-    return;
-  }
   app.innerHTML = `
     ${renderTopbar()}
     <div class="content" id="content"></div>
@@ -410,12 +406,14 @@ function render(){
   `;
   const content = document.getElementById("content");
   if(state.view === "mural") content.innerHTML = "<div class='loading'>Carregando vagas…</div>";
-  if(state.view === "publicar") content.innerHTML = renderPublicar();
-  if(state.view === "perfil") content.innerHTML = "<div class='loading'>Carregando perfil…</div>";
+  if(state.view === "publicar") content.innerHTML = state.perfil ? renderPublicar() : renderAuthInline("publicar uma vaga");
+  if(state.view === "perfil") content.innerHTML = state.perfil ? "<div class='loading'>Carregando perfil…</div>" : renderAuthInline("ver seu perfil");
   bindNav();
   if(state.view === "mural") loadMural();
-  if(state.view === "publicar") bindPublicar();
-  if(state.view === "perfil") loadPerfil();
+  if(state.view === "publicar" && state.perfil) bindPublicar();
+  if(state.view === "publicar" && !state.perfil) bindAuthInline();
+  if(state.view === "perfil" && state.perfil) loadPerfil();
+  if(state.view === "perfil" && !state.perfil) bindAuthInline();
 }
 
 function renderTopbar(){
@@ -426,7 +424,9 @@ function renderTopbar(){
         <span class="brand-name">JobDay</span>
         <span class="brand-city">· Araçatuba</span>
       </div>
-      <button class="icon-btn" id="btn-logout" title="Sair">⏻</button>
+      ${state.perfil
+        ? `<button class="icon-btn" id="btn-logout" title="Sair">⏻</button>`
+        : `<button class="link-btn" id="btn-entrar-top" style="font-size:13px;">Entrar</button>`}
     </div>
   `;
 }
@@ -449,33 +449,43 @@ function bindNav(){
   document.querySelectorAll(".nav-item").forEach(btn=>{
     btn.onclick = ()=>{ state.view = btn.dataset.view; render(); };
   });
-  document.getElementById("btn-logout").onclick = async ()=>{
+  const logout = document.getElementById("btn-logout");
+  if(logout) logout.onclick = async ()=>{
     await saveSession(null);
     state.perfil = null;
+    state.view = "mural";
     render();
   };
+  const entrarTop = document.getElementById("btn-entrar-top");
+  if(entrarTop) entrarTop.onclick = ()=>{ state.view = "perfil"; render(); };
 }
 
-/* =========================================================
-   AUTENTICAÇÃO
-   ========================================================= */
-function renderAuth(){
+/* ---------------- prompt de login/cadastro inline (dentro de uma aba) ---------------- */
+function renderAuthInline(motivo){
   const isLogin = state.authTab === "login";
   return `
-  <div class="auth-wrap">
-    <div class="auth-hero">
-      <span class="tag"><span class="sw"></span><span class="sw2"></span>&nbsp;Presencial + Remoto</span>
-      <h1>Bicos de hoje,<br/>renda de agora.</h1>
-      <p>O mural de trabalho da sua cidade. Sem taxa pra quem presta serviço, sem enrolação pra quem contrata.</p>
+    <div class="empty" style="padding:30px 0 10px;">
+      <div class="glyph">🔑</div>
+      <div class="t">Crie uma conta pra ${motivo}</div>
+      <div class="small-muted">É rápido — leva menos de um minuto.</div>
     </div>
     <div class="auth-tabs">
       <button class="auth-tab ${isLogin?'active':''}" data-tab="login">Entrar</button>
       <button class="auth-tab ${!isLogin?'active':''}" data-tab="cadastro">Criar conta</button>
     </div>
     <div id="auth-form"></div>
-  </div>`;
+  `;
+}
+function bindAuthInline(){
+  document.querySelectorAll(".auth-tab").forEach(t=>{
+    t.onclick = ()=>{ state.authTab = t.dataset.tab; render(); };
+  });
+  bindAuthForm();
 }
 
+/* =========================================================
+   AUTENTICAÇÃO
+   ========================================================= */
 function renderLoginForm(){
   return `
     <div class="field"><label>E-mail</label><input type="email" id="f-email" placeholder="voce@email.com"/></div>
@@ -508,13 +518,9 @@ function renderCadastroForm(){
   `;
 }
 
-function bindAuth(){
+function bindAuthForm(){
   const box = document.getElementById("auth-form");
   box.innerHTML = state.authTab==="login" ? renderLoginForm() : renderCadastroForm();
-
-  document.querySelectorAll(".auth-tab").forEach(t=>{
-    t.onclick = ()=>{ state.authTab = t.dataset.tab; render(); };
-  });
 
   if(state.authTab === "login"){
     document.getElementById("btn-entrar").onclick = async ()=>{
@@ -530,6 +536,7 @@ function bindAuth(){
         if(!perfis[0]) throw new Error("Perfil não encontrado para esta conta.");
         state.perfil = perfis[0];
         toast("Bem-vindo de volta!", "ok");
+        state.view = "perfil";
         render();
       }catch(e){ msg.textContent = traduzErro(e.message); msg.className="hint error"; }
     };
@@ -563,6 +570,7 @@ function bindAuth(){
         const perfis = await rest(`perfis?id=eq.${data.user.id}&select=*`);
         state.perfil = perfis[0];
         toast("Conta criada! Bem-vindo(a).", "ok");
+        state.view = "perfil";
         render();
       }catch(e){ msg.textContent = traduzErro(e.message); msg.className="hint error"; }
     };
@@ -597,14 +605,18 @@ async function loadMural(){
   });
 
   try{
-    const [vagas, minhasCand, minhasFaltas] = await Promise.all([
-      rest(`vagas?status=eq.aberta&tipo=eq.${state.filtroTipo}&order=criado_em.desc&select=*`),
-      rest(`candidaturas?trabalhador_id=eq.${state.perfil.id}&select=vaga_id,status`),
-      rest(`faltas_trabalhador?perfil_id=eq.${state.perfil.id}&select=*`),
-    ]);
-    state.faltas = minhasFaltas[0] || null;
-    const candMap = {};
-    minhasCand.forEach(c => candMap[c.vaga_id] = c.status);
+    const vagas = await rest(`vagas?status=eq.aberta&tipo=eq.${state.filtroTipo}&order=criado_em.desc&select=*`);
+    let candMap = {};
+    if(state.perfil){
+      const [minhasCand, minhasFaltas] = await Promise.all([
+        rest(`candidaturas?trabalhador_id=eq.${state.perfil.id}&select=vaga_id,status`),
+        rest(`faltas_trabalhador?perfil_id=eq.${state.perfil.id}&select=*`),
+      ]);
+      state.faltas = minhasFaltas[0] || null;
+      minhasCand.forEach(c => candMap[c.vaga_id] = c.status);
+    } else {
+      state.faltas = null;
+    }
     renderLista(vagas, candMap);
   }catch(e){
     document.getElementById("lista").innerHTML = `<div class="empty"><div class="glyph">⚠️</div><div class="t">Não deu pra carregar o mural</div><div class="small-muted">${e.message}</div></div>`;
@@ -624,18 +636,21 @@ function renderLista(vagas, candMap){
   `;
   vagas.forEach(v=>{
     const btn = document.getElementById(`cand-${v.id}`);
-    if(btn) btn.onclick = ()=> candidatar(v.id);
+    if(btn) btn.onclick = ()=>{
+      if(state.perfil) candidatar(v.id);
+      else abrirCandidaturaRapida(v);
+    };
   });
 }
 
 function vagaCardHTML(v, meuStatus){
   const isRemoto = v.tipo === "remoto";
-  const souDono = v.contratante_id === state.perfil.id;
+  const souDono = state.perfil && v.contratante_id === state.perfil.id;
   const bloqueado = state.faltas?.bloqueado_ate && new Date(state.faltas.bloqueado_ate) > new Date();
   let acao = "";
   if(souDono){
     acao = `<span class="small-muted">Vaga publicada por você</span>`;
-  } else if(state.perfil.tipo_usuario === "contratante"){
+  } else if(state.perfil?.tipo_usuario === "contratante"){
     acao = `<span class="small-muted">Conta de contratante — não pode se candidatar</span>`;
   } else if(meuStatus){
     acao = `<span class="badge ${meuStatus==='aceito'?'on-success':meuStatus==='rejeitado'?'on-alert':''}">Sua candidatura: ${STATUS_LABEL[meuStatus]}</span>`;
@@ -666,6 +681,63 @@ async function candidatar(vagaId){
     toast("Candidatura enviada!", "ok");
     loadMural();
   }catch(e){ toast(traduzErroBanco(e.message), "err"); }
+}
+
+/* ---------------- candidatura rápida (sem sessão prévia) ----------------
+   Coleta os dados pessoais só no momento em que a pessoa decide agir,
+   cria a conta e já envia a candidatura na mesma ação. */
+function abrirCandidaturaRapida(vaga){
+  openModal(`
+    <div class="modal-title">Candidatar-se</div>
+    <div class="modal-sub">${escapeHtml(vaga.titulo)} · ${brl(vaga.valor)}</div>
+    <p class="small-muted" style="margin:-6px 0 14px;">Só pedimos isso agora porque você decidiu se candidatar — pra navegar o mural não precisa de cadastro.</p>
+    <div class="field"><label>Nome completo</label><input type="text" id="qa-nome" placeholder="Seu nome"/></div>
+    <div class="field"><label>Bairro</label><input type="text" id="qa-bairro" placeholder="Ex: Vila Mendonça"/></div>
+    <div class="field"><label>Telefone / WhatsApp</label><input type="tel" id="qa-telefone" placeholder="(18) 90000-0000"/></div>
+    <div class="field"><label>E-mail</label><input type="email" id="qa-email" placeholder="voce@email.com"/></div>
+    <div class="field"><label>Senha</label><input type="password" id="qa-senha" placeholder="mínimo 6 caracteres"/></div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="qa-lgpd"/>
+      <label for="qa-lgpd">Autorizo que meus dados profissionais fiquem visíveis para fins de contratação, conforme a política de privacidade.</label>
+    </div>
+    <button class="btn btn-primary ${vaga.tipo==='remoto'?'remoto':'presencial'}" id="qa-btn-enviar">Enviar candidatura</button>
+    <p class="hint" id="qa-msg"></p>
+  `);
+
+  document.getElementById("qa-btn-enviar").onclick = async ()=>{
+    const nome = document.getElementById("qa-nome").value.trim();
+    const bairro = document.getElementById("qa-bairro").value.trim();
+    const telefone = document.getElementById("qa-telefone").value.trim();
+    const email = document.getElementById("qa-email").value.trim();
+    const senha = document.getElementById("qa-senha").value;
+    const lgpd = document.getElementById("qa-lgpd").checked;
+    const msg = document.getElementById("qa-msg");
+    msg.className="hint"; msg.textContent="";
+
+    if(!nome || !bairro || !email || senha.length<6){ msg.textContent="Preencha nome, bairro, e-mail e uma senha com 6+ caracteres."; msg.className="hint error"; return; }
+    if(!lgpd){ msg.textContent="É necessário aceitar o termo para continuar."; msg.className="hint error"; return; }
+
+    try{
+      const data = await authFetch("signup", { email, password: senha });
+      if(!data.access_token){
+        msg.textContent = "Conta criada! Confirme seu e-mail e depois volte pra se candidatar.";
+        msg.className = "hint ok";
+        return;
+      }
+      await saveSession(data);
+      await rest("perfis", { method:"POST", prefer:"return=representation", body:{
+        id: data.user.id, nome_completo: nome, tipo_usuario: "prestador", bairro,
+        aceitou_termo_lgpd: true, aceitou_termo_em: new Date().toISOString()
+      }});
+      await rest("perfis_dados_sensiveis", { method:"POST", body:{ perfil_id: data.user.id, email, telefone }});
+      const perfis = await rest(`perfis?id=eq.${data.user.id}&select=*`);
+      state.perfil = perfis[0];
+      await rest("candidaturas", { method:"POST", body:{ vaga_id: vaga.id, trabalhador_id: data.user.id } });
+      closeModal();
+      toast("Candidatura enviada! Conta criada em segundos.", "ok");
+      loadMural();
+    }catch(e){ msg.textContent = traduzErro(e.message) !== e.message ? traduzErro(e.message) : traduzErroBanco(e.message); msg.className="hint error"; }
+  };
 }
 
 function traduzErroBanco(m){
@@ -1159,3 +1231,4 @@ function renderCandidatosModal(vaga, cands){
 </script>
 </body>
 </html>
+
