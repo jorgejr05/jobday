@@ -57,21 +57,24 @@
     padding:22px 20px 14px;
     display:flex;align-items:center;justify-content:space-between;
     border-bottom:1px solid transparent;
+    gap:10px;
   }
-  .brand{display:flex;align-items:baseline;gap:6px;}
+  .brand{display:flex;align-items:baseline;gap:6px;min-width:0;overflow:hidden;}
   .brand-mark{
     width:10px;height:10px;border-radius:3px;
     background:linear-gradient(135deg,var(--presencial) 50%, var(--remoto) 50%);
     display:inline-block;margin-right:2px;transform:translateY(-1px);
   }
   .brand-name{font-family:'Space Grotesk';font-weight:700;font-size:19px;letter-spacing:-0.02em;}
-  .brand-city{color:var(--muted);font-size:12px;font-weight:500;}
+  .brand-city{color:var(--muted);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .icon-btn{
-    width:36px;height:36px;border-radius:50%;
+    width:40px;height:40px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
     background:var(--surface);border:1px solid var(--line);
     color:var(--muted);font-size:13px;font-weight:600;
+    flex-shrink:0;
   }
+  .icon-btn svg{display:block;}
 
   /* ---------- segmented control (signature element) ---------- */
   .segmented{
@@ -143,7 +146,7 @@
   .btn-primary.presencial{background:var(--presencial);}
   .btn-primary.remoto{background:var(--remoto);}
   .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
-  .btn-sm{width:auto;padding:8px 14px;font-size:13px;border-radius:10px;}
+  .btn-sm{width:auto;padding:9px 14px;font-size:13px;border-radius:10px;min-height:36px;}
   .btn-row{display:flex;gap:8px;margin-top:10px;}
   .btn:disabled{opacity:.45;cursor:not-allowed;}
   .btn-danger{background:var(--alert-soft);color:var(--alert);}
@@ -155,7 +158,7 @@
   .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;}
   .field input[type=text],.field input[type=email],.field input[type=password],.field input[type=number],.field input[type=tel],.field select,.field textarea{
     width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);
-    background:var(--surface);font-size:14.5px;color:var(--ink);
+    background:var(--surface);font-size:16px;color:var(--ink);
   }
   .field textarea{resize:vertical;min-height:70px;}
   .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--ink);outline-offset:1px;}
@@ -417,6 +420,7 @@ function render(){
 }
 
 function renderTopbar(){
+  const logoutIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`;
   return `
     <div class="topbar">
       <div class="brand">
@@ -425,8 +429,8 @@ function renderTopbar(){
         <span class="brand-city">· Araçatuba</span>
       </div>
       ${state.perfil
-        ? `<button class="icon-btn" id="btn-logout" title="Sair">⏻</button>`
-        : `<button class="link-btn" id="btn-entrar-top" style="font-size:13px;">Entrar</button>`}
+        ? `<button class="icon-btn" id="btn-logout" title="Sair" aria-label="Sair">${logoutIcon}</button>`
+        : `<button class="link-btn" id="btn-entrar-top" style="font-size:14px;">Entrar</button>`}
     </div>
   `;
 }
