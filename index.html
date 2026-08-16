@@ -895,21 +895,28 @@ async function loadPerfil(){
       rest(`faltas_trabalhador?perfil_id=eq.${state.perfil.id}&select=*`),
       rest(`perfis_dados_sensiveis?perfil_id=eq.${state.perfil.id}&select=telefone`),
     ]);
-    let candidaturas = [], minhasVagas = [];
+    let candidaturas = [], minhasVagas = [], avaliadas = new Set();
     if(state.perfil.tipo_usuario !== "contratante"){
       candidaturas = await rest(`candidaturas?trabalhador_id=eq.${state.perfil.id}&order=candidatou_em.desc&select=*,vagas(titulo,valor,tipo)`);
+      const concluidas = candidaturas.filter(c=>c.status==='concluido').map(c=>c.id);
+      if(concluidas.length){
+        try{
+          const minhasAval = await rest(`avaliacoes?candidatura_id=in.(${concluidas.join(",")})&avaliador_id=eq.${state.perfil.id}&select=candidatura_id`);
+          avaliadas = new Set(minhasAval.map(a=>a.candidatura_id));
+        }catch(e){}
+      }
     }
     if(state.perfil.tipo_usuario !== "prestador"){
       minhasVagas = await rest(`vagas?contratante_id=eq.${state.perfil.id}&order=criado_em.desc&select=*`);
     }
-    content.innerHTML = renderPerfilContent(disp.map(d=>d.periodo), faltas[0], sensiveis[0]?.telefone, candidaturas, minhasVagas);
+    content.innerHTML = renderPerfilContent(disp.map(d=>d.periodo), faltas[0], sensiveis[0]?.telefone, candidaturas, minhasVagas, avaliadas);
     bindPerfil(minhasVagas);
   }catch(e){
     content.innerHTML = `<div class="empty"><div class="glyph">⚠️</div><div class="t">Erro ao carregar perfil</div><div class="small-muted">${e.message}</div></div>`;
   }
 }
 
-function renderPerfilContent(periodosAtivos, faltas, telefone, candidaturas, minhasVagas){
+function renderPerfilContent(periodosAtivos, faltas, telefone, candidaturas, minhasVagas, avaliadas){
   const bloqueado = faltas?.bloqueado_ate && new Date(faltas.bloqueado_ate) > new Date();
   const PERIODOS = ["manha","tarde","noite","fim_de_semana"];
 
@@ -952,7 +959,7 @@ function renderPerfilContent(periodosAtivos, faltas, telefone, candidaturas, min
     ${state.perfil.tipo_usuario !== "contratante" ? `
       <div class="section-label">Minhas candidaturas</div>
       ${candidaturas.length===0 ? `<p class="small-muted">Você ainda não se candidatou a nenhuma vaga.</p>` :
-        candidaturas.map(c => candidaturaCardHTML(c)).join("")}
+        candidaturas.map(c => candidaturaCardHTML(c, avaliadas.has(c.id))).join("")}
     ` : ""}
 
     ${state.perfil.tipo_usuario !== "prestador" ? `
@@ -963,9 +970,10 @@ function renderPerfilContent(periodosAtivos, faltas, telefone, candidaturas, min
   `;
 }
 
+const VAGA_STATUS_LABEL = { aberta:"Aberta", em_andamento:"Em andamento", concluida:"Concluída", cancelada:"Cancelada" };
+
 function minhaVagaCardHTML(v){
-  const statusBadgeClass = v.status==='aberta' ? 'on-success' : v.status==='cancelada' ? 'on-alert' : '';
-  const podeExcluir = v.status === 'aberta';
+  const statusBadgeClass = v.status==='aberta' ? 'on-success' : v.status==='em_andamento' ? 'on-remoto' : v.status==='concluida' ? 'on-success' : v.status==='cancelada' ? 'on-alert' : '';
   return `
     <div class="card">
       <div class="row-between">
@@ -974,7 +982,7 @@ function minhaVagaCardHTML(v){
       </div>
       <div class="badges">
         <span class="badge ${v.tipo==='remoto'?'on-remoto':'on-presencial'}">${v.tipo==='remoto'?'Remoto':'Presencial'}</span>
-        <span class="badge ${statusBadgeClass}">${v.status}</span>
+        <span class="badge ${statusBadgeClass}">${VAGA_STATUS_LABEL[v.status]||v.status}</span>
       </div>
       <div class="btn-row" style="flex-wrap:wrap;">
         <button class="btn-sm btn btn-ghost" data-ver-candidatos="${v.id}">Ver candidatos</button>
@@ -985,7 +993,7 @@ function minhaVagaCardHTML(v){
   `;
 }
 
-function candidaturaCardHTML(c){
+function candidaturaCardHTML(c, jaAvaliou){
   const kindClass = c.vagas.tipo === "remoto" ? "on-remoto":"on-presencial";
   let acoesTrabalhador = "";
   if(c.status === "aceito"){
@@ -997,7 +1005,9 @@ function candidaturaCardHTML(c){
   }
   let avaliacao = "";
   if(c.status === "concluido"){
-    avaliacao = `<button class="link-btn" data-avaliar="${c.id}" data-alvo="${''}" style="margin-top:8px;">Avaliar esta experiência</button>`;
+    avaliacao = jaAvaliou
+      ? `<span class="badge on-success" style="margin-top:8px;display:inline-block;">Você avaliou esta experiência</span>`
+      : `<button class="link-btn" data-avaliar="${c.id}" style="margin-top:8px;">Avaliar esta experiência</button>`;
   }
   return `
     <div class="card">
@@ -1060,7 +1070,7 @@ function bindPerfil(minhasVagas){
   });
 
   document.querySelectorAll("[data-avaliar]").forEach(btn=>{
-    btn.onclick = ()=> abrirAvaliacao(btn.dataset.avaliar);
+    btn.onclick = ()=> abrirAvaliacao(btn.dataset.avaliar, ()=>{ closeModal(); loadPerfil(); });
   });
 
   document.querySelectorAll("[data-ver-candidatos]").forEach(btn=>{
@@ -1159,7 +1169,7 @@ function abrirEditarVaga(vaga){
 }
 
 /* ---------------- avaliação (cega) ---------------- */
-function abrirAvaliacao(candidaturaId){
+function abrirAvaliacao(candidaturaId, onSuccess){
   let notaEscolhida = 0;
   openModal(`
     <div class="modal-title">Avaliar experiência</div>
@@ -1187,8 +1197,8 @@ function abrirAvaliacao(candidaturaId){
         candidatura_id: candidaturaId, avaliador_id: state.perfil.id, avaliado_id: avaliadoId,
         nota: notaEscolhida, comentario
       }});
-      closeModal();
       toast("Avaliação enviada!", "ok");
+      if(onSuccess) onSuccess(); else closeModal();
     }catch(e){ toast(traduzErroBanco(e.message), "err"); }
   };
 }
@@ -1198,22 +1208,32 @@ async function abrirCandidatosDaVaga(vaga){
   try{
     const cands = await rest(`candidaturas?vaga_id=eq.${vaga.id}&select=*,perfis!candidaturas_trabalhador_id_fkey(nome_completo,nota_media)`);
     if(cands.length===0){ toast("Nenhuma candidatura ainda para esta vaga.", ""); return; }
-    renderCandidatosModal(vaga, cands);
+    const ids = cands.map(c=>c.id).join(",");
+    let minhasAvaliacoes = [];
+    try{ minhasAvaliacoes = await rest(`avaliacoes?candidatura_id=in.(${ids})&avaliador_id=eq.${state.perfil.id}&select=candidatura_id`); }catch(e){}
+    const avaliadas = new Set(minhasAvaliacoes.map(a=>a.candidatura_id));
+    renderCandidatosModal(vaga, cands, avaliadas);
   }catch(e){ toast(e.message, "err"); }
 }
 
-function renderCandidatosModal(vaga, cands){
+function renderCandidatosModal(vaga, cands, avaliadas){
   openModal(`
     <div class="modal-title">Candidatos</div>
     <div class="modal-sub">${escapeHtml(vaga.titulo)}</div>
     <div id="cand-list">
       ${cands.map(c => `
-        <div class="candidato-row">
+        <div class="candidato-row" style="flex-wrap:wrap;">
           <div>
             <div class="candidato-name">${escapeHtml(c.perfis.nome_completo)}</div>
             <div class="candidato-meta">★ ${Number(c.perfis.nota_media).toFixed(1)} · ${STATUS_LABEL[c.status]}</div>
           </div>
-          ${c.status === "pendente" ? `<button class="btn-sm btn btn-success" data-accept="${c.id}">Aceitar</button>` : ""}
+          <div class="btn-row" style="margin-top:0;">
+            ${c.status === "pendente" ? `<button class="btn-sm btn btn-success" data-accept="${c.id}">Aceitar</button>` : ""}
+            ${c.status === "aceito" ? `<button class="btn-sm btn btn-success" data-concluir="${c.id}">Concluído</button>` : ""}
+            ${c.status === "aceito" ? `<button class="btn-sm btn btn-danger" data-falta="${c.id}">Marcar falta</button>` : ""}
+            ${c.status === "concluido" && !avaliadas.has(c.id) ? `<button class="btn-sm btn btn-ghost" data-avaliar-modal="${c.id}">Avaliar</button>` : ""}
+            ${c.status === "concluido" && avaliadas.has(c.id) ? `<span class="badge on-success">Você avaliou</span>` : ""}
+          </div>
         </div>
       `).join("")}
     </div>
@@ -1223,12 +1243,39 @@ function renderCandidatosModal(vaga, cands){
       try{
         await rest(`candidaturas?id=eq.${btn.dataset.accept}`, { method:"PATCH", body:{ status:"aceito" } });
         closeModal();
-        toast("Candidato aceito! Chat liberado para ambos.", "ok");
+        toast("Candidato aceito! A vaga saiu do mural e o chat foi liberado.", "ok");
+        loadPerfil();
       }catch(e){ toast(e.message, "err"); }
     };
+  });
+  document.querySelectorAll("[data-concluir]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      try{
+        await rest(`candidaturas?id=eq.${btn.dataset.concluir}`, { method:"PATCH", body:{ status:"concluido" } });
+        closeModal();
+        toast("Serviço marcado como concluído!", "ok");
+        loadPerfil();
+      }catch(e){ toast(e.message, "err"); }
+    };
+  });
+  document.querySelectorAll("[data-falta]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const ok = await confirmModal("Marcar falta?", "Isso conta para a regra dos 3 erros do trabalhador e pode bloqueá-lo por 30 dias. A vaga volta a ficar aberta para novos candidatos.", "Marcar falta");
+      if(!ok) return;
+      try{
+        await rest(`candidaturas?id=eq.${btn.dataset.falta}`, { method:"PATCH", body:{ status:"no_show" } });
+        closeModal();
+        toast("Falta registrada. A vaga voltou ao mural.", "err");
+        loadPerfil();
+      }catch(e){ toast(e.message, "err"); }
+    };
+  });
+  document.querySelectorAll("[data-avaliar-modal]").forEach(btn=>{
+    btn.onclick = ()=> abrirAvaliacao(btn.dataset.avaliarModal, ()=>{ closeModal(); loadPerfil(); });
   });
 }
 </script>
 </body>
 </html>
+
 
