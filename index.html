@@ -45,6 +45,12 @@
     position:relative;
     padding-bottom:78px;
   }
+  @media (min-width:720px){
+    #app{ max-width:900px; }
+  }
+  @media (min-width:1080px){
+    #app{ max-width:1200px; }
+  }
   a{color:inherit;text-decoration:none;}
   button{font-family:inherit;cursor:pointer;}
   input,select,textarea{font-family:inherit;}
@@ -78,12 +84,13 @@
 
   /* ---------- segmented control (signature element) ---------- */
   .segmented{
-    margin:4px 20px 18px;
+    margin:4px 0 18px;
     display:flex;position:relative;
     background:var(--surface);
     border:1px solid var(--line);
     border-radius:999px;
     padding:4px;
+    max-width:340px;
   }
   .segmented .thumb{
     position:absolute;top:4px;bottom:4px;left:4px;
@@ -105,9 +112,48 @@
 
   /* ---------- content ---------- */
   .content{padding:0 20px;flex:1;}
+  @media (min-width:720px){ .content{padding:0 32px;} }
   .section-label{
     font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
     color:var(--muted);margin:22px 0 10px;
+  }
+
+  /* ---------- mural hero (marketplace) ---------- */
+  .mural-hero{padding:8px 0 4px;}
+  .mural-hero h1{
+    font-family:'Space Grotesk';font-weight:700;font-size:26px;line-height:1.15;
+    letter-spacing:-0.01em;margin:0 0 6px;
+  }
+  .mural-hero h1 .grad{
+    background:linear-gradient(135deg,var(--presencial),var(--remoto));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .mural-hero p{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 16px;max-width:520px;}
+  @media (min-width:720px){
+    .mural-hero h1{font-size:38px;}
+    .mural-hero p{font-size:15.5px;}
+  }
+  .stat-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .stat-pill{
+    display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:999px;
+    background:var(--surface);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink);
+  }
+  .stat-pill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .stat-pill.presencial .dot{background:var(--presencial);}
+  .stat-pill.remoto .dot{background:var(--remoto);}
+  .stat-pill .num{font-family:'IBM Plex Mono';}
+
+  /* ---------- vagas grid (multi-coluna em telas maiores) ---------- */
+  .vagas-grid{display:flex;flex-direction:column;}
+  @media (min-width:640px){
+    .vagas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;align-items:start;}
+    .vagas-grid .vaga-card{margin-bottom:0;}
+  }
+  .vaga-posted{font-size:11px;color:var(--muted);margin-top:2px;}
+
+  @media (hover:hover){
+    .vaga-card{transition:transform .15s ease, box-shadow .15s ease;}
+    .vaga-card:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(23,23,27,.06), 0 14px 28px -14px rgba(23,23,27,.16);}
   }
 
   /* ---------- cards ---------- */
@@ -601,15 +647,51 @@ function segmentedHTML(){
   `;
 }
 
+function muralHeroHTML(contagens){
+  const totalPresencial = contagens?.presencial ?? "—";
+  const totalRemoto = contagens?.remoto ?? "—";
+  return `
+    <div class="mural-hero">
+      <h1>Os <span class="grad">bicos de hoje</span><br/>de Araçatuba, num só lugar.</h1>
+      <p>Vagas presenciais e remotas publicadas por gente da região. Navegue à vontade — só pedimos seus dados quando você decidir se candidatar.</p>
+      <div class="stat-pills">
+        <span class="stat-pill presencial"><span class="dot"></span><span class="num">${totalPresencial}</span> presenciais abertas</span>
+        <span class="stat-pill remoto"><span class="dot"></span><span class="num">${totalRemoto}</span> remotas abertas</span>
+      </div>
+    </div>
+  `;
+}
+
+function tempoRelativo(iso){
+  const diffSeg = (Date.now() - new Date(iso).getTime()) / 1000;
+  if(diffSeg < 60) return "publicada agora mesmo";
+  if(diffSeg < 3600) return `publicada há ${Math.floor(diffSeg/60)} min`;
+  if(diffSeg < 86400) return `publicada há ${Math.floor(diffSeg/3600)}h`;
+  const dias = Math.floor(diffSeg/86400);
+  if(dias === 1) return "publicada ontem";
+  if(dias < 7) return `publicada há ${dias} dias`;
+  return `publicada em ${new Date(iso).toLocaleDateString('pt-BR')}`;
+}
+
 async function loadMural(){
   const content = document.getElementById("content");
-  content.innerHTML = segmentedHTML() + `<div id="lista" class="loading">Buscando vagas…</div>`;
+  content.innerHTML = muralHeroHTML(null) + segmentedHTML() + `<div id="lista" class="loading">Buscando vagas…</div>`;
   document.querySelectorAll("#seg button").forEach(b=>{
     b.onclick = ()=>{ state.filtroTipo = b.dataset.t; loadMural(); };
   });
 
   try{
-    const vagas = await rest(`vagas?status=eq.aberta&tipo=eq.${state.filtroTipo}&order=criado_em.desc&select=*`);
+    const [vagas, todasAbertas] = await Promise.all([
+      rest(`vagas?status=eq.aberta&tipo=eq.${state.filtroTipo}&order=criado_em.desc&select=*`),
+      rest(`vagas?status=eq.aberta&select=tipo`),
+    ]);
+    const contagens = {
+      presencial: todasAbertas.filter(v=>v.tipo==='presencial').length,
+      remoto: todasAbertas.filter(v=>v.tipo==='remoto').length,
+    };
+    const heroEl = document.querySelector(".mural-hero");
+    if(heroEl) heroEl.outerHTML = muralHeroHTML(contagens);
+
     let candMap = {};
     if(state.perfil){
       const [minhasCand, minhasFaltas] = await Promise.all([
@@ -636,7 +718,7 @@ function renderLista(vagas, candMap){
   const bloqueado = state.faltas?.bloqueado_ate && new Date(state.faltas.bloqueado_ate) > new Date();
   lista.innerHTML = `
     ${bloqueado ? `<div class="badge on-alert" style="display:inline-block;margin-bottom:12px;">Candidaturas bloqueadas até ${new Date(state.faltas.bloqueado_ate).toLocaleDateString('pt-BR')} (3 faltas seguidas)</div>` : ""}
-    ${vagas.map(v => vagaCardHTML(v, candMap[v.id])).join("")}
+    <div class="vagas-grid">${vagas.map(v => vagaCardHTML(v, candMap[v.id])).join("")}</div>
   `;
   vagas.forEach(v=>{
     const btn = document.getElementById(`cand-${v.id}`);
@@ -674,7 +756,8 @@ function vagaCardHTML(v, meuStatus){
         ${v.bairro ? `<span class="badge">📍 ${escapeHtml(v.bairro)}</span>` : ""}
         ${v.periodo ? `<span class="badge">${PERIODO_LABEL[v.periodo]}</span>` : ""}
       </div>
-      <div style="margin-top:12px;">${acao}</div>
+      <div class="vaga-posted">${tempoRelativo(v.criado_em)}</div>
+      <div style="margin-top:10px;">${acao}</div>
     </div>
   `;
 }
@@ -1281,5 +1364,6 @@ function renderCandidatosModal(vaga, cands, avaliadas){
 </script>
 </body>
 </html>
+
 
 
